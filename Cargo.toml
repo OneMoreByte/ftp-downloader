@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Jack H."]
 
 [dependencies]
-ftp = "0.0.8"
+ftp = { version = "2.0.0", features = ["secure"] }
+regex = "*"
