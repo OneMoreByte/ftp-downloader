@@ -1,0 +1,4 @@
+- All lines can be put in different places BUT the files to download __FIXME__ [src\main.rs](src\main.rs)
+- argments __TODO__ [src\main.rs](src\main.rs)
+- ftps support __TODO__ [src\main.rs](src\main.rs)
+- ls command __TODO__ [src\main.rs](src\main.rs)

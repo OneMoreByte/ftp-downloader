@@ -1,0 +1,22 @@
+host: 192.168.1.48:1337;
+
+user: user;
+
+password: apassword;
+
+remoteFiles:
+[{
+  remoteDir: /var/wow/;
+  localDir: ./;
+  name: weeb-Trash.mkv;
+  nameToSaveAs: weeeb_trash.mkv; //Output Names can be changed with the optional namesToSaveAs:
+},
+
+{
+  remoteDir: /var/www/;
+  localDir: ./webBackup/;
+  name: page(*).css; // (*) can be used to match anything with the strings alongside it. so in this case it will get any file with a .css extension in the folder specified
+},
+{
+
+}];
