@@ -9,7 +9,6 @@ use std::io::prelude::*;
 use ftp::FtpStream;
 // use openssl::ssl::*;
 
-
 struct DownloadableFile {
     client_dir: String,
     server_dir: String,
