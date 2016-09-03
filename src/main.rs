@@ -6,6 +6,8 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::fs::OpenOptions;
+use std::io::BufWriter;
 use ftp::FtpStream;
 // use openssl::ssl::*;
 
@@ -352,22 +354,77 @@ fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
     }
 }
 
+// Adds a file to downlaod to a config
+fn add_to_file(mut file: Vec<String>) -> std::io::Result<()> {
+    // TODO Catch errors and check inputs
+    if file.len() == 4 {
+        let g = file[3].clone();
+        file.push(g);
+    }
+    let mut name = "./configs/".to_string();
+    let t = file[0].clone();
+    name.push_str(t.as_str());
+    let mut b = "".to_string();
+    let mut _a = File::open(&name).unwrap();
+    let __ = _a.read_to_string(&mut b);
+    let mut _f = OpenOptions::new().write(true).truncate(true).open(name).unwrap();
+    let mut _w = BufWriter::new(_f);
+    let _s1: &str;
+    let _s2: &str;
+
+    let (_s1, _s2) = b.split_at(b.rfind("}").unwrap().checked_add("}".len()).unwrap());
+
+    println!("Writing to config");
+
+    let _ =
+        _w.write_all(format!("{},\r\n{{\r\n  remoteDir: {};\r\n  localDir: {};\r\n  name: \
+                              {};\r\n  nameToSaveAs: {};\r\n}}{}",
+                             _s1,
+                             file[1],
+                             file[2],
+                             file[3],
+                             file[4],
+                             _s2)
+            .as_bytes());
+    Ok(())
+}
+
 
 fn main() {
 
     let mut _should_ls = false;
     let mut dry_run = false;
+    let mut should_add = false;
+    let mut add_to_config: Vec<String> = Vec::new();
+    let ag: Vec<String> = env::args().collect();
 
-    for ar in env::args() {
-        if ar.contains("-dr") {
+    for x in 0..ag.len() {
+        if ag[x].contains("-dr") {
             dry_run = true;
         }
-        println!("Arg {}", ar);
+        if ag[x].contains("-af") {
+            if (x + 4) < ag.len() {
+                should_add = true;
+                add_to_config.push(ag[x + 1].clone());
+                add_to_config.push(ag[x + 2].clone());
+                add_to_config.push(ag[x + 3].clone());
+                add_to_config.push(ag[x + 4].clone());
+                if x + 5 < ag.len() {
+                    add_to_config.push(ag[x + 5].clone());
+                }
+            } else {
+                println!("Config name, client and server directory, and server filename must be \
+                          supplied");
+            }
+        }
+    }
+
+    if should_add {
+        let _ = add_to_file(add_to_config);
     }
 
     // TODO ls command
-
-    println!("\r Loading configs...");
+    println!("\rLoading configs...");
 
     let configs = load_configs().unwrap();
 
