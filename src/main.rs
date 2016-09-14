@@ -34,38 +34,39 @@ fn mk_dir(d: &str) -> std::io::Result<()> {
 }
 
 /// Breaks down the config given a String of the config file's contents
-fn break_conf(b: &mut String) -> Option<DownRequest> {
+fn break_conf(buff: &mut String) -> Option<DownRequest> {
 
     /// Find line and get the data from it, if there isn't data to get, None is returned
     fn break_line(input: &mut String, line: &str) -> Option<String> {
         if input.contains(line) {
-            let loca = input.find(line).unwrap().checked_add(line.len()).unwrap();
-            let y = &input[loca..];
+            let loc = input.find(line).unwrap().checked_add(line.len()).unwrap();
+            let temp = &input[loc..];
 
-            let locb = y.find(";").unwrap();
-            Some(y[..locb].trim().to_string())
+            let loc = temp.find(";").unwrap();
+            Some(temp[..loc].trim().to_string())
         } else {
             None
         }
     }
     // Make sure we won't get an unexpected None
-    if b.contains("host:") && b.contains("user:") && b.contains("password:") &&
-       b.contains("remoteFiles:") {
+    if buff.contains("host:") && buff.contains("user:") && buff.contains("password:") &&
+       buff.contains("remoteFiles:") {
 
         /// Breaks down the remoteFile: line specificly since it's kinda special in layout
         fn break_remotefile(input: &mut String) -> Option<Vec<DownloadableFile>> {
 
-
-            let start =
+            // Trim string down to what we need
+            let loc =
                 input.find("remoteFiles:").unwrap().checked_add("remoteFiles:".len()).unwrap();
-            let inp = &input[start..];
-            let tinp = &inp[..inp.rfind(";").unwrap().checked_sub(";".len()).unwrap()];
-            // let ttinp = &tinp[..tinp.rfind("]").unwrap().checked_sub("]".len()).unwrap()];
+            let remfile = &input[loc..];
+            let remfile = &remfile[..remfile.rfind(";").unwrap().checked_sub(";".len()).unwrap()];
+            let remfile = &remfile[remfile.find("[").unwrap().checked_add("[".len()).unwrap()..];
 
-            let why = &tinp[tinp.find("[").unwrap().checked_add("[".len()).unwrap()..];
-            let files: Vec<&str> = why.split(',').collect();
-            let mut f: Vec<DownloadableFile> = Vec::new();
+            // Break it up
+            let files: Vec<&str> = remfile.split(',').collect();
+            let mut dlable_f: Vec<DownloadableFile> = Vec::new();
 
+            // [LOG FUNCTION]
             println!("There are {} entries from this config to download",
                      files.len());
 
@@ -74,7 +75,7 @@ fn break_conf(b: &mut String) -> Option<DownRequest> {
                 if file.contains("remoteDir:") && file.contains("localDir:") &&
                    file.contains("name:") {
                     let a: &mut String = &mut file.to_string();
-                    f.push(DownloadableFile {
+                    dlable_f.push(DownloadableFile {
                         client_dir: break_line(a, "localDir:").unwrap(),
                         server_dir: break_line(a, "remoteDir:").unwrap(),
                         filename: break_line(a, "name:").unwrap(),
@@ -85,9 +86,10 @@ fn break_conf(b: &mut String) -> Option<DownRequest> {
 
             }
 
-            if f.len() > 0 {
-                Some(f)
+            if dlable_f.len() > 0 {
+                Some(dlable_f)
             } else {
+                // [LOG FUNCTION]
                 println!("No files found to download or check on in this config. Check your \
                           config.");
                 None
@@ -99,10 +101,10 @@ fn break_conf(b: &mut String) -> Option<DownRequest> {
 
 
         let temp = DownRequest {
-            host: break_line(b, "host:").unwrap(),
-            user: break_line(b, "user:").unwrap(),
-            pass: break_line(b, "password:").unwrap(),
-            remote_files: break_remotefile(b).unwrap(),
+            host: break_line(buff, "host:").unwrap(),
+            user: break_line(buff, "user:").unwrap(),
+            pass: break_line(buff, "password:").unwrap(),
+            remote_files: break_remotefile(buff).unwrap(),
         };
 
         Some(temp)
@@ -122,34 +124,36 @@ fn load_configs() -> std::io::Result<Vec<DownRequest>> {
     } // make directory
 
     let config_dir = fs::read_dir("./configs/").unwrap(); //read all files in dir, and expand them
-    let mut but_two_m8 = fs::read_dir("./configs/").unwrap();
-    let mut numb_in_folder: u8 = 0;
-    let mut configs = Vec::new();
+    let mut config_files: Vec<std::fs::DirEntry> = Vec::new();
 
-    for f in config_dir {
-        // for all files f in the directory open them to file, and save the contained string
+    for file in config_dir {
+        config_files.push(file.unwrap());
+    }
 
-        numb_in_folder += 1;
-        let name = but_two_m8.next();
-        let mut file = try!(File::open(try!(f).path()));
+    let mut configs_fmted = Vec::new();
+
+    for file in &config_files {
+        // for all files in the directory open them to the f var., and save the contained string
+
+        let mut f = try!(File::open(file.path()));
         let mut buff = String::new();
 
-        try!(file.read_to_string(&mut buff));
-        let temcon = break_conf(&mut buff); // send buff off to be broken down
+        try!(f.read_to_string(&mut buff));
+        let temp_config = break_conf(&mut buff); // send buff off to be broken down
 
-        if temcon.is_some() {
+        if temp_config.is_some() {
             // Check to make sure we didn't get nothing.
-            configs.push(temcon.unwrap());
+            configs_fmted.push(temp_config.unwrap());
             println!("Config \"{}\" loaded successfully!",
-                     name.unwrap().unwrap().file_name().to_str().unwrap());
+                     &file.file_name().to_str().unwrap());
         } else {
             println!("Config \"{}\" couldn't be loaded.",
-                     name.unwrap().unwrap().file_name().to_str().unwrap());
+                     &file.file_name().to_str().unwrap());
         }
 
     }
-    println!("There were {} configs to load!", numb_in_folder);
-    Ok(configs)
+    println!("There were {} configs to load!", config_files.len());
+    Ok(configs_fmted)
 }
 
 /// Downloads files from a DownRequest
@@ -431,4 +435,6 @@ fn main() {
     for con in configs {
         let _d = download_from_site(con, dry_run);
     }
+    std::process::exit(0);
+
 }
