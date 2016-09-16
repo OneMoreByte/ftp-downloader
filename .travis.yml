@@ -18,3 +18,4 @@ deploy:
     - "ftpdown.exe"
   on:
     repo: OneMoreByte/ftp-downloader
+    all_branches: true
