@@ -118,11 +118,10 @@ fn break_conf(buff: &mut String) -> Option<DownRequest> {
 
 /// Loads all configs into the folder
 fn load_configs() -> std::io::Result<Vec<DownRequest>> {
-    let mut conf_d = env::current_exe().unwrap();
+    let mut conf_d = env::home_dir().unwrap().to_str().unwrap().to_string();
+    conf_d.push_str("/.ftpdown/");
     println!("{:?}", conf_d);
-    conf_d.push("/config/");
-    println!("{:?}", conf_d);
-    if mk_dir(&conf_d.to_str().unwrap()).is_ok() {
+    if mk_dir(&conf_d.as_str()).is_ok() {
         println!("Made the dir needed");
     } // make directory
 
@@ -368,14 +367,14 @@ fn add_to_file(mut file: Vec<String>) -> std::io::Result<()> {
         let g = file[3].clone();
         file.push(g);
     }
-    let mut name = env::current_exe().unwrap();
-    println!("{:?}", name);
+    let mut conf_d = env::home_dir().unwrap().to_str().unwrap().to_string();
+    conf_d.push_str("/.ftpdown/");
     let t = file[0].clone();
-    name.push(t.as_str());
+    conf_d.push_str(t.as_str());
     let mut b = "".to_string();
-    let mut _a = File::open(&name).unwrap();
+    let mut _a = File::open(&conf_d).unwrap();
     let __ = _a.read_to_string(&mut b);
-    let mut _f = OpenOptions::new().write(true).truncate(true).open(name).unwrap();
+    let mut _f = OpenOptions::new().write(true).truncate(true).open(conf_d).unwrap();
     let mut _w = BufWriter::new(_f);
     let _s1: &str;
     let _s2: &str;
