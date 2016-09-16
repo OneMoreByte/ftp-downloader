@@ -9,5 +9,13 @@ matrix:
 
 os:
   - linux
-  - osx
   - windows
+deploy:
+  provider: releases
+  api_key: "3b301dc78d5b870cb62ebfb32f14e918f692f4ca"
+  file:
+    - "ftpdown"
+    - "ftpdown.exe"
+  skip_cleanup: true
+  on:
+    tags: true
