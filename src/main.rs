@@ -366,6 +366,7 @@ fn add_to_file(mut file: Vec<String>) -> std::io::Result<()> {
         file.push(g);
     }
     let mut name = env::current_exe().unwrap();
+    println!("{:?}", name);
     let t = file[0].clone();
     name.push(t.as_str());
     let mut b = "".to_string();
