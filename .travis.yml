@@ -9,7 +9,7 @@ matrix:
 os:
 - linux
 - windows
-before_deploy: "cd ./ && ls && echo 'Fuck this'"
+before_deploy: "cd ./target/debug/ && ls && echo '\033[0;31mFuck this'"
 deploy:
   skip_cleanup: true
   provider: releases
