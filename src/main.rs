@@ -120,7 +120,7 @@ fn break_conf(buff: &mut String) -> Option<DownRequest> {
 fn load_configs() -> std::io::Result<Vec<DownRequest>> {
     let mut conf_d = env::current_exe().unwrap();
     conf_d.push("/config/");
-
+    println!("{:?}", conf_d);
     if mk_dir(&conf_d.to_str().unwrap()).is_ok() {
         println!("Made the dir needed");
     } // make directory
