@@ -13,6 +13,8 @@ deploy:
   provider: releases
   api_key:
     secure: pJpeSyT30GijGmmHjyLix+bv3jwS/ZaNEDW2a1ity/qojhxyfPx+dFKS4phkjTkdQ2dgQPXwdn79SK8CdLtNNcpn3++zBmJpyJhEdrq6jAjJjweC++I+6ZKiD5phoeqerVZsDa7RqwdQ0+2KFTi7t2BFKuU/UXAlxjyGc89NpD55AtYz64vbp4mfVslxy3s//mTzEQbzlKD0cjTKwwFKLccWm/gtbXb3NJ/p9FaJtaueZEuRqSRuMGEKHdMGLjE/ukbDbZ5DLB24UBWhlNaLStHhi1sCpSNStamGZoa+S/xdqCcw/c8CRh5SPz5ZfRscnv9MJdTOR3EWeTTC+o+lIZFBbmmsvZ6jKEuagEnsVdIUBnVuJ8UZ2qGIn8JFjp7ydblrxKAK1HDgPppoCI3vcFGgMHAQg6jhEz3OqbvPji5X+dTPwLiZBMJ240/WNQCLuBVGfJlKNCdp6jQatdocgr3MErPFKWcG/992gSsUljfW6gxHJgF6kYukv8M/bBp1PrHLjNvJj/dAMwMnPhlK5UOH/r9mZY60++gUtAaBpGj09tPJOL7kmOV4QNKNQ305qG26JE5HfPFkXgiUZwyppY6GvVSSQACSPp6Akl1n/pw2aBBbzuF4+U7FN3MBaBEjpWm+92x+1iOWeeOEf8010mH2xHjl3p1OI+v77TLXLcA=
-  file: ''
+  file:
+    - "ftpdown"
+    - "ftpdown.exe"
   on:
     repo: OneMoreByte/ftp-downloader
