@@ -9,6 +9,7 @@ matrix:
 os:
 - linux
 - windows
+before_deploy: "ls"
 deploy:
   skip_cleanup: true
   provider: releases
