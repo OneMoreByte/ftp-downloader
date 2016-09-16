@@ -118,12 +118,14 @@ fn break_conf(buff: &mut String) -> Option<DownRequest> {
 
 /// Loads all configs into the folder
 fn load_configs() -> std::io::Result<Vec<DownRequest>> {
+    let mut conf_d = env::current_exe().unwrap();
+    conf_d.push("/config/");
 
-    if mk_dir("./configs").is_ok() {
+    if mk_dir(&conf_d.to_str().unwrap()).is_ok() {
         println!("Made the dir needed");
     } // make directory
 
-    let config_dir = fs::read_dir("./configs/").unwrap(); //read all files in dir, and expand them
+    let config_dir = fs::read_dir(conf_d).unwrap(); //read all files in dir, and expand them
     let mut config_files: Vec<std::fs::DirEntry> = Vec::new();
 
     for file in config_dir {
