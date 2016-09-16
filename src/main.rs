@@ -119,6 +119,7 @@ fn break_conf(buff: &mut String) -> Option<DownRequest> {
 /// Loads all configs into the folder
 fn load_configs() -> std::io::Result<Vec<DownRequest>> {
     let mut conf_d = env::current_exe().unwrap();
+    println!("{:?}", conf_d);
     conf_d.push("/config/");
     println!("{:?}", conf_d);
     if mk_dir(&conf_d.to_str().unwrap()).is_ok() {
