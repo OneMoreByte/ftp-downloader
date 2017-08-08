@@ -11,154 +11,8 @@ use std::io::BufWriter;
 use ftp::FtpStream;
 // use openssl::ssl::*;
 
-struct DownloadableFile {
-    client_dir: String,
-    server_dir: String,
-    filename: String,
-    clientfile_namescheme: String,
-}
 
-
-struct DownRequest {
-    host: String,
-    user: String,
-    pass: String,
-    remote_files: Vec<DownloadableFile>,
-}
-
-
-/// Makes a directory specified
-fn mk_dir(d: &str) -> std::io::Result<()> {
-    try!(fs::create_dir_all(d));
-    Ok(())
-}
-
-/// Breaks down the config given a String of the config file's contents
-fn break_conf(buff: &mut String) -> Option<DownRequest> {
-
-    /// Find line and get the data from it, if there isn't data to get, None is returned
-    fn break_line(input: &mut String, line: &str) -> Option<String> {
-        if input.contains(line) {
-            let loc = input.find(line).unwrap().checked_add(line.len()).unwrap();
-            let temp = &input[loc..];
-
-            let loc = temp.find(";").unwrap();
-            Some(temp[..loc].trim().to_string())
-        } else {
-            None
-        }
-    }
-    // Make sure we won't get an unexpected None
-    if buff.contains("host:") && buff.contains("user:") && buff.contains("password:") &&
-       buff.contains("remoteFiles:") {
-
-        /// Breaks down the remoteFile: line specificly since it's kinda special in layout
-        fn break_remotefile(input: &mut String) -> Option<Vec<DownloadableFile>> {
-
-            // Trim string down to what we need
-            let loc =
-                input.find("remoteFiles:").unwrap().checked_add("remoteFiles:".len()).unwrap();
-            let remfile = &input[loc..];
-            let remfile = &remfile[..remfile.rfind(";").unwrap().checked_sub(";".len()).unwrap()];
-            let remfile = &remfile[remfile.find("[").unwrap().checked_add("[".len()).unwrap()..];
-
-            // Break it up
-            let files: Vec<&str> = remfile.split(',').collect();
-            let mut dlable_f: Vec<DownloadableFile> = Vec::new();
-
-            // [LOG FUNCTION]
-            println!("There are {} entries from this config to download",
-                     files.len());
-
-            for file in files {
-
-                if file.contains("remoteDir:") && file.contains("localDir:") &&
-                   file.contains("name:") {
-                    let a: &mut String = &mut file.to_string();
-                    dlable_f.push(DownloadableFile {
-                        client_dir: break_line(a, "localDir:").unwrap(),
-                        server_dir: break_line(a, "remoteDir:").unwrap(),
-                        filename: break_line(a, "name:").unwrap(),
-                        clientfile_namescheme: break_line(a, "nameToSaveAs:")
-                            .unwrap_or(break_line(a, "name:").unwrap()),
-                    });
-                } else {}
-
-            }
-
-            if dlable_f.len() > 0 {
-                Some(dlable_f)
-            } else {
-                // [LOG FUNCTION]
-                println!("No files found to download or check on in this config. Check your \
-                          config.");
-                None
-            }
-
-
-
-        }
-
-
-        let temp = DownRequest {
-            host: break_line(buff, "host:").unwrap(),
-            user: break_line(buff, "user:").unwrap(),
-            pass: break_line(buff, "password:").unwrap(),
-            remote_files: break_remotefile(buff).unwrap(),
-        };
-
-        Some(temp)
-    } else {
-        // If we would there's no point
-        None
-    }
-
-}
-
-
-/// Loads all configs into the folder
-fn load_configs() -> std::io::Result<Vec<DownRequest>> {
-    let mut conf_d = env::home_dir().unwrap().to_str().unwrap().to_string();
-    conf_d.push_str("/.ftpdown/");
-    println!("{:?}", conf_d);
-    if mk_dir(&conf_d.as_str()).is_ok() {
-        println!("Made the dir needed");
-    } // make directory
-
-    let config_dir = fs::read_dir(conf_d).unwrap(); //read all files in dir, and expand them
-    let mut config_files: Vec<std::fs::DirEntry> = Vec::new();
-
-    for file in config_dir {
-        config_files.push(file.unwrap());
-    }
-
-    let mut configs_fmted = Vec::new();
-
-    for file in &config_files {
-        // for all files in the directory open them to the f var., and save the contained string
-
-        let mut f = try!(File::open(file.path()));
-        let mut buff = String::new();
-
-        try!(f.read_to_string(&mut buff));
-        let temp_config = break_conf(&mut buff); // send buff off to be broken down
-
-        if temp_config.is_some() {
-            // Check to make sure we didn't get nothing.
-            configs_fmted.push(temp_config.unwrap());
-            println!("Config \"{}\" loaded successfully!",
-                     &file.file_name().to_str().unwrap());
-        } else {
-            println!("Config \"{}\" couldn't be loaded.",
-                     &file.file_name().to_str().unwrap());
-        }
-
-    }
-    println!("There were {} configs to load!", config_files.len());
-    Ok(configs_fmted)
-}
-
-/// Downloads files from a DownRequest
+/// Downloads files from a DownRequest  
 fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
     // TODO ftps support
     let host: String;
@@ -405,6 +259,7 @@ fn main() {
     let mut add_to_config: Vec<String> = Vec::new();
     let ag: Vec<String> = env::args().collect();
 
+    // TODO fa
     for x in 0..ag.len() {
         if ag[x].contains("-dr") {
             dry_run = true;
