@@ -1,6 +1,5 @@
 extern crate ftp;
 extern crate regex;
-extern crate openssl;
 
 use std::env;
 use std::fs;
@@ -9,35 +8,26 @@ use std::io::prelude::*;
 use std::fs::OpenOptions;
 use std::io::BufWriter;
 use ftp::FtpStream;
-// use openssl::ssl::*;
 
+mod config;
+mod util;
 
-/// Downloads files from a DownRequest  
-fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
+/// Downloads files from a DownRequest
+fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
     // TODO ftps support
-    let host: String;
-    let port: u16;
-    if c.host.contains(":") {
-        let sp: Vec<&str> = c.host.split(':').collect();
-        host = sp[0].trim().to_string();
-        port = sp[1].trim().parse().unwrap();
-
-    } else {
-        host = c.host;
-        port = 21
-    }
-
-    println!("Downloading files from \"{}:{}\"", host, port);
 
 
-    let mut fstream = FtpStream::connect((host.as_str(), port)).unwrap();
+    println!("Downloading files from \"{}:{}\"", c.host, c.port);
+
+
+    let mut fstream = FtpStream::connect((c.host.as_str(), c.port)).unwrap();
 
     if fstream.login(&c.user.as_str(), &c.pass.as_str()).is_ok() {
 
 
         println!("Connected to server, and logged in successfully");
 
-        for f in c.remote_files {
+        for d in c.remote_downloadable {
             /// prints the print_progress from a usize from 0 - 100
             fn print_progress(per_done: usize) {
                 let outa = per_done.checked_mul(4).unwrap().checked_div(10).unwrap();
@@ -84,7 +74,8 @@ fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
                 }
 
                 if f.filename.contains(f.clientfile_namescheme.as_str()) &&
-                   f.filename.len() == f.clientfile_namescheme.len() {
+                    f.filename.len() == f.clientfile_namescheme.len()
+                {
                     cl_names = to_download.clone();
                 } else {
                     cl_names = Vec::new();
@@ -120,8 +111,10 @@ fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
                             cl_names.push(cfn);
                         }
                     } else {
-                        println!("Can't download files. The client and server name must have the \
-                                  same number of (*)!");
+                        println!(
+                            "Can't download files. The client and server name must have the \
+                                  same number of (*)!"
+                        );
                     }
                 }
 
@@ -186,9 +179,11 @@ fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
                                     }
                                     Err(_err) => break,
                                 };
-                                print_progress(((lsize.checked_mul(100).unwrap())
-                                    .checked_div(rsize.unwrap())
-                                    .unwrap()));
+                                print_progress(
+                                    ((lsize.checked_mul(100).unwrap())
+                                         .checked_div(rsize.unwrap())
+                                         .unwrap()),
+                                );
                             }
                             print!("\r\n");
                             Ok(())
@@ -197,9 +192,11 @@ fn download_from_site(c: DownRequest, dr: bool) -> std::io::Result<()> {
                         println!("File is already downloaded");
                     }
                 } else {
-                    println!("Would be downloading {} and saving as {}",
-                             &to_download[fz],
-                             &cl_names[fz]);
+                    println!(
+                        "Would be downloading {} and saving as {}",
+                        &to_download[fz],
+                        &cl_names[fz]
+                    );
                 }
             }
         }
@@ -228,7 +225,11 @@ fn add_to_file(mut file: Vec<String>) -> std::io::Result<()> {
     let mut b = "".to_string();
     let mut _a = File::open(&conf_d).unwrap();
     let __ = _a.read_to_string(&mut b);
-    let mut _f = OpenOptions::new().write(true).truncate(true).open(conf_d).unwrap();
+    let mut _f = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(conf_d)
+        .unwrap();
     let mut _w = BufWriter::new(_f);
     let _s1: &str;
     let _s2: &str;
@@ -237,16 +238,18 @@ fn add_to_file(mut file: Vec<String>) -> std::io::Result<()> {
 
     println!("Writing to config");
 
-    let _ =
-        _w.write_all(format!("{},\r\n{{\r\n  remoteDir: {};\r\n  localDir: {};\r\n  name: \
+    let _ = _w.write_all(
+        format!(
+            "{},\r\n{{\r\n  remoteDir: {};\r\n  localDir: {};\r\n  name: \
                               {};\r\n  nameToSaveAs: {};\r\n}}{}",
-                             _s1,
-                             file[1],
-                             file[2],
-                             file[3],
-                             file[4],
-                             _s2)
-            .as_bytes());
+            _s1,
+            file[1],
+            file[2],
+            file[3],
+            file[4],
+            _s2
+        ).as_bytes(),
+    );
     Ok(())
 }
 
@@ -259,7 +262,7 @@ fn main() {
     let mut add_to_config: Vec<String> = Vec::new();
     let ag: Vec<String> = env::args().collect();
 
-    // TODO fa
+    // TODO add App arguments instead
     for x in 0..ag.len() {
         if ag[x].contains("-dr") {
             dry_run = true;
@@ -275,8 +278,10 @@ fn main() {
                     add_to_config.push(ag[x + 5].clone());
                 }
             } else {
-                println!("Config name, client and server directory, and server filename must be \
-                          supplied");
+                println!(
+                    "Config name, client and server directory, and server filename must be \
+                          supplied"
+                );
             }
         }
     }
@@ -288,7 +293,7 @@ fn main() {
     // TODO ls command
     println!("\rLoading configs...");
 
-    let configs = load_configs().unwrap();
+    let configs = util::load_configs().unwrap();
 
     for con in configs {
         let _d = download_from_site(con, dry_run);

@@ -1,12 +1,11 @@
 [package]
 name = "ftpdown"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jack H."]
 
 [dependencies]
-ftp = { version = "2.0.0", features = ["secure"] }
+ftp = { version = "*" }
 regex = "*"
-openssl = "*"
 
 [profile.dev]
 debug = true
