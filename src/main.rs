@@ -286,6 +286,7 @@ fn main() {
         }
     }
 
+
     if should_add {
         let _ = add_to_file(add_to_config);
     }
