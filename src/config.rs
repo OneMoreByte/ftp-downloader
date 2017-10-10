@@ -1,12 +1,83 @@
-use util;
 
-struct Downloadable {
+use ftp::FtpStream;
+use ftp::FtpError;
+
+/// Finds the line and get the data from it, if there isn't data to get, None is returned
+fn break_line(input: &mut String, line: &str) -> Option<String> {
+    if input.contains(line) {
+        let loc = input.find(line).unwrap().checked_add(line.len()).unwrap();
+        let temp = &input[loc..];
+
+        let loc = temp.find(";").unwrap();
+        Some(temp[..loc].trim().to_string())
+    } else {
+        None
+    }
+}
+
+/// Breaks down the remoteFile: line specificly since it's kinda special in layout
+fn break_remotefile(input: &mut String) -> Option<Vec<Downloadable>> {
+
+    // Trim string down to what we need
+    let loc = input
+        .find("remoteFiles:")
+        .unwrap()
+        .checked_add("remoteFiles:".len())
+        .unwrap();
+    let remfile = &input[loc..];
+    let remfile = &remfile[..remfile.rfind(";").unwrap().checked_sub(";".len()).unwrap()];
+    let remfile = &remfile[remfile.find("[").unwrap().checked_add("[".len()).unwrap()..];
+
+    // Break it up
+    let files: Vec<&str> = remfile.split(',').collect();
+    let mut dlable_f: Vec<Downloadable> = Vec::new();
+
+    // [LOG FUNCTION]
+    println!(
+        "There are {} entries from this config to download",
+        files.len()
+    );
+
+    for file in files {
+
+        if file.contains("remoteDir:") && file.contains("localDir:") && file.contains("name:") {
+            let a: &mut String = &mut file.to_string();
+            dlable_f.push(Downloadable {
+                client_loc: break_line(a, "localLoc:").unwrap(),
+                server_loc: break_line(a, "remoteLoc:").unwrap(),
+                namescheme: break_line(a, "nameToSaveAs:").unwrap_or(
+                    break_line(a, "name:")
+                        .unwrap(),
+                ),
+            });
+        } else {
+        }
+
+    }
+
+    if dlable_f.len() > 0 {
+        Some(dlable_f)
+    } else {
+        // [LOG FUNCTION]
+        println!(
+            "No files found to download or check on in this config. Check your \
+              config."
+        );
+        None
+    }
+
+
+
+}
+
+pub struct Downloadable {
     client_loc: String,
     server_loc: String,
     namescheme: String,
 }
 
 
+#[derive(Default)]
 pub struct Config {
     host: String,
     port: u16,
@@ -15,28 +86,34 @@ pub struct Config {
     remote_downloadable: Vec<Downloadable>,
 }
 
+
 impl Config {
     /// Breaks down the config given a String of the config file's contents
-    pub fn Config(buff: &mut String) {
+    pub fn new(buff: &mut String) -> Option<Config>{
+        let mut temp: Config = Default::default();
+
         // Make sure we have everything we need
         if buff.contains("host:") && buff.contains("user:") && buff.contains("password:")
         {
 
-            self.host = break_line(buff, "host:").unwrap();
-            self.user = break_line(buff, "user:").unwrap();
-            self.pass = break_line(buff, "password:").unwrap();
-            self.remote_downloadable: break_remotefile(buff).unwrap(),
+            temp.user = break_line(buff, "user:").unwrap();
+            temp.pass = break_line(buff, "password:").unwrap();
+            temp.remote_downloadable = break_remotefile(buff).unwrap();
 
-            if host.contains(":") {
-                let sp: Vec<&str> = host.split(':').collect();
-                host = sp[0].trim().to_string();
-                port = sp[1].trim().parse().unwrap();
+            let line = break_line(buff, "host:").unwrap();
+
+            if line.contains(":") {
+                let sp: Vec<&str> = line.split(':').collect();
+                temp.host = sp[0].trim().to_string();
+                temp.port = sp[1].trim().parse().unwrap();
 
             } else {
-                port = 21
+                temp.host = line;
+                temp.port = 21
             }
 
             Some(temp)
+
         } else {
             // If we would there's no point
             print!("Missing ");
@@ -55,75 +132,26 @@ impl Config {
 
             None
         }
-
     }
 
-    /// Finds the line and get the data from it, if there isn't data to get, None is returned
-    fn break_line(input: &mut String, line: &str) -> Option<String> {
-        if input.contains(line) {
-            let loc = input.find(line).unwrap().checked_add(line.len()).unwrap();
-            let temp = &input[loc..];
+    pub fn get_next_file(&mut self) -> Option<Downloadable>{
 
-            let loc = temp.find(";").unwrap();
-            Some(temp[..loc].trim().to_string())
-        } else {
-            None
-        }
+        let s: Option<Downloadable> = self.remote_downloadable.pop();
+        (s)
     }
 
-    /// Breaks down the remoteFile: line specificly since it's kinda special in layout
-    fn break_remotefile(input: &mut String) -> Option<Vec<Downloadable>> {
+    pub fn get_ftpstream(&self) -> Result<FtpStream, FtpError> {
 
-        // Trim string down to what we need
-        let loc = input
-            .find("remoteFiles:")
-            .unwrap()
-            .checked_add("remoteFiles:".len())
-            .unwrap();
-        let remfile = &input[loc..];
-        let remfile = &remfile[..remfile.rfind(";").unwrap().checked_sub(";".len()).unwrap()];
-        let remfile = &remfile[remfile.find("[").unwrap().checked_add("[".len()).unwrap()..];
+        println!("Downloading files from \"{}:{}\"", self.host, self.port);
 
-        // Break it up
-        let files: Vec<&str> = remfile.split(',').collect();
-        let mut dlable_f: Vec<Downloadable> = Vec::new();
+        let mut fstream = FtpStream::connect((self.host.as_str(), self.port))?;
 
-        // [LOG FUNCTION]
-        println!(
-            "There are {} entries from this config to download",
-            files.len()
-        );
-
-        for file in files {
-
-            if file.contains("remoteDir:") && file.contains("localDir:") && file.contains("name:") {
-                let a: &mut String = &mut file.to_string();
-                dlable_f.push(Downloadable {
-                    client_dir: break_line(a, "localDir:").unwrap(),
-                    server_dir: break_line(a, "remoteDir:").unwrap(),
-                    filename: break_line(a, "name:").unwrap(),
-                    clientfile_namescheme: break_line(a, "nameToSaveAs:").unwrap_or(
-                        break_line(a, "name:")
-                            .unwrap(),
-                    ),
-                });
-            } else {
-            }
-
-        }
-
-        if dlable_f.len() > 0 {
-            Some(dlable_f)
+        if fstream.login(&self.user.as_str(), &self.pass.as_str()).is_ok() {
+            // Should error handle here. Oh well
         } else {
-            // [LOG FUNCTION]
-            println!(
-                "No files found to download or check on in this config. Check your \
-                  config."
-            );
-            None
+            println!("Could connect, but login credentails are invalid.");
         }
-
-
+            Ok(fstream)
 
     }
 

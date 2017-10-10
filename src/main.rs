@@ -13,7 +13,7 @@ mod config;
 mod util;
 
 /// Downloads files from a DownRequest
-fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
+/*fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
     // TODO ftps support
 
 
@@ -49,12 +49,12 @@ fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
 
             let mut to_download: Vec<String> = Vec::new();
             let mut cl_names: Vec<String>;
-            let _cd = fstream.cwd(&f.server_dir.as_str());
+            let _cd = fstream.cwd(&c.server_dir.as_str());
 
-            if f.filename.contains("(*)") {
+            if c.filename.contains("(*)") {
                 let all_in_dir: Vec<String> = fstream.nlst(None).unwrap();
-                let spieces_to_check: Vec<&str> = f.filename.split("(*)").collect();
-                let cpieces_to_check: Vec<&str> = f.clientfile_namescheme.split("(*)").collect();
+                let spieces_to_check: Vec<&str> = c.filename.split("(*)").collect();
+                let cpieces_to_check: Vec<&str> = c.clientfile_namescheme.split("(*)").collect();
 
                 for sf in all_in_dir {
 
@@ -73,8 +73,8 @@ fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
                     }
                 }
 
-                if f.filename.contains(f.clientfile_namescheme.as_str()) &&
-                    f.filename.len() == f.clientfile_namescheme.len()
+                if c.filename.contains(c.clientfile_namescheme.as_str()) &&
+                    c.filename.len() == c.clientfile_namescheme.len()
                 {
                     cl_names = to_download.clone();
                 } else {
@@ -118,18 +118,18 @@ fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
                     }
                 }
 
-                println!("{} files matching \"{}\"", &to_download.len(), &f.filename);
+                println!("{} files matching \"{}\"", &to_download.len(), &c.filename);
 
             } else {
                 cl_names = Vec::new();
-                cl_names.push(f.clientfile_namescheme);
-                to_download.push(f.filename);
+                cl_names.push(c.clientfile_namescheme);
+                to_download.push(c.filename);
             }
 
 
             for fz in 0..cl_names.len() {
-                let dir = &f.client_dir.as_str().clone();
-                let _md = mk_dir(dir); // Make Client dir
+                let dir = &c.client_dir.as_str().clone();
+                let _md = util::mk_dir(dir); // Make Client dir
 
                 /// Checks to see if the file is downloaded
                 /// Takes a local file with it's path and the remote filee's byte size in usize
@@ -209,6 +209,203 @@ fn download_from_site(c: config::Config, dr: bool) -> std::io::Result<()> {
         println!("User login credentals were incorrect");
         Ok(())
     }
+}
+*/
+fn download_from_site(mut config: config::Config, dr: bool) -> std::io::Result<()> {
+
+    let mut ftpstream = config.get_ftpstream();
+
+    if ftpstream.is_ok(){
+        let mut fstream = ftpstream.unwrap();
+
+        let mut next_file = config.get_next_file();
+
+        println!("Connected to server, and logged in successfully");
+
+        while next_file.is_some() {
+            /// prints the print_progress from a usize from 0 - 100
+            fn print_progress(per_done: usize) {
+                let outa = per_done.checked_mul(4).unwrap().checked_div(10).unwrap();
+                let mut t = 0;
+                let mut pbar: String = "[".to_string();
+                while t < 40 {
+                    if outa < t {
+                        pbar.push_str(" ")
+                    } else {
+                        pbar.push_str("=")
+                    }
+
+                    t = t + 1;
+                }
+                pbar.push_str("]");
+
+                print!("\r{} : {}%", pbar, per_done);
+            }
+
+            let mut to_download: Vec<String> = Vec::new();
+            let mut cl_names: Vec<String>;
+            let _cd = fstream.cwd(&config.server_dir.as_str());
+
+            /*if config.filename.contains("(*)") {
+                let all_in_dir: Vec<String> = fstream.nlst(None).unwrap();
+                let spieces_to_check: Vec<&str> = c.filename.split("(*)").collect();
+                let cpieces_to_check: Vec<&str> = c.clientfile_namescheme.split("(*)").collect();
+
+                for sf in all_in_dir {
+
+                    let mut check_match = true;
+
+                    while check_match {
+                        for p in &spieces_to_check {
+                            if !sf.contains(p) {
+                                check_match = false;
+                            }
+                        }
+                        break;
+                    }
+                    if check_match {
+                        to_download.push(sf);
+                    }
+                }*/
+
+                if c.filename.contains(c.clientfile_namescheme.as_str()) &&
+                    c.filename.len() == c.clientfile_namescheme.len()
+                {
+                    cl_names = to_download.clone();
+                } else {
+                    cl_names = Vec::new();
+
+                    if spieces_to_check.len() == cpieces_to_check.len() {
+                        for n in &to_download {
+
+                            let mut inv_pieces: Vec<&str> = Vec::new();
+                            let mut cfn: String = "".to_string();
+                            inv_pieces.push(n.as_str());
+                            for piece in &spieces_to_check {
+                                let mut temp: Vec<&str> = Vec::new();
+                                for a in inv_pieces {
+                                    if a.contains(piece) {
+                                        let t: Vec<&str> = a.split(piece).collect();
+                                        for tt in t {
+                                            temp.push(tt);
+                                        }
+                                    } else {
+                                        temp.push(a);
+                                    }
+                                }
+                                inv_pieces = temp;
+                            }
+
+                            for x in 0..inv_pieces.len() {
+                                if x > 0 {
+                                    cfn.push_str(cpieces_to_check[x - 1])
+                                }
+                                cfn.push_str(inv_pieces[x]);
+                            }
+
+                            cl_names.push(cfn);
+                        }
+                    } else {
+                        println!(
+                            "Can't download files. The client and server name must have the \
+                                  same number of (*)!"
+                        );
+                    }
+                }
+
+                println!("{} files matching \"{}\"", &to_download.len(), &c.filename);
+
+            } else {
+                cl_names = Vec::new();
+                cl_names.push(c.clientfile_namescheme);
+                to_download.push(c.filename);
+            }
+
+
+            for fz in 0..cl_names.len() {
+                let dir = &c.client_dir.as_str().clone();
+                let _md = util::mk_dir(dir); // Make Client dir
+
+                /// Checks to see if the file is downloaded
+                /// Takes a local file with it's path and the remote filee's byte size in usize
+                fn is_downloaded(fileandpath: &String, rsz: &usize) -> Option<bool> {
+                    let mdata = fs::metadata(fileandpath);
+                    if mdata.is_ok() {
+
+                        let lsz = mdata.unwrap().len() as usize;
+                        if &lsz == rsz { Some(true) } else { Some(false) }
+                    } else {
+                        None
+                    }
+                }
+                if dr == false {
+                    let rsize = fstream.size(&to_download[fz].as_str()).unwrap();
+
+                    let mut fnm = "".to_string();
+                    fnm.push_str(dir);
+                    fnm.push_str("/");
+                    fnm.push_str(&cl_names[fz].as_str());
+
+                    println!("Downloading \"{}\"", to_download[fz]);
+
+                    if !is_downloaded(&fnm, &rsize.unwrap()).unwrap_or(false) {
+
+                        // Make local file
+                        let _tt = fstream.transfer_type(::ftp::types::FileType::Binary);
+
+
+
+                        let _result = fstream.retr(&to_download[fz].as_str(), |stream| {
+                            let mut buf = [0; 4096];
+                            let mut flnm = "".to_string();
+                            flnm.push_str(dir);
+                            flnm.push_str("/");
+                            flnm.push_str(&cl_names[fz].as_str());
+
+                            let mut file = File::create(flnm).unwrap();
+                            let mut lsize: usize = 0;
+
+                            loop {
+                                match stream.read(&mut buf) {
+                                    Ok(0) => break,
+                                    Ok(n) => {
+                                        file.write_all(&buf[0..n]).unwrap();
+                                        lsize += n;
+                                    }
+                                    Err(_err) => break,
+                                };
+                                print_progress(
+                                    ((lsize.checked_mul(100).unwrap())
+                                         .checked_div(rsize.unwrap())
+                                         .unwrap()),
+                                );
+                            }
+                            print!("\r\n");
+                            Ok(())
+                        });
+                    } else {
+                        println!("File is already downloaded");
+                    }
+                } else {
+                    println!(
+                        "Would be downloading {} and saving as {}",
+                        &to_download[fz],
+                        &cl_names[fz]
+                    );
+                }
+            }
+        }
+
+        let _f = fstream.quit();
+
+        Ok(())
+
+
+    } else {
+
+    }
+
+    Ok(())
 }
 
 // Adds a file to downlaod to a config

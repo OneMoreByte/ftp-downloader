@@ -1,35 +1,44 @@
 use config;
+use std::fs;
+use env;
+use File;
+use std::io::prelude::*;
+use std::io;
+
 
 /// Loads all configs into the folder
-pub fn load_configs() -> std::io::Result<Vec<config::Confg>> {
+pub fn load_configs() -> Result<Vec<config::Config>, &'static str> {
 
     let mut config_dir = env::home_dir().unwrap().to_str().unwrap().to_string();
     config_dir.push_str("/.ftpdown/");
 
     // ?
-    println!("{:?}", conf_d);
+    println!("{:?}", config_dir);
 
-    if mk_dir(&conf_d.as_str()).is_ok() {
+    if mk_dir(&config_dir.as_str()).is_ok() {
         println!("Made the dir needed");
     } // make directory
 
-    let config_dir = fs::read_dir(conf_d).unwrap(); //read all files in dir, and expand them
+    let config_dir = fs::read_dir(config_dir).unwrap(); //read all files in dir, and expand them
     let mut configs: Vec<config::Config> = Vec::new();
+
 
 
 
     for file in config_dir {
         // for all files in the directory open them to the f var., and save the contained string
-        temp = file.unwrap();
-        let mut config_raw = try!(File::open(temp.path()));
+        let temp = file.unwrap();
+        let mut config_raw = File::open(temp.path()).unwrap();
         let mut buff = String::new();
 
-        try!(config_raw.read_to_string(&mut buff));
-        let config = Config(&mut buff); // send buff off to be broken down
+        config_raw.read_to_string(&mut buff);
+        let mut con: Option<config::Config> = config::Config::new(&mut buff);
 
-        if config.is_some() {
+
+        if con.is_some() {
+
             // Check the success
-            configs.push(config);
+            configs.push(con.unwrap());
             println!(
                 "Config \"{}\" loaded successfully!",
                 temp.file_name().to_str().unwrap()
@@ -47,7 +56,7 @@ pub fn load_configs() -> std::io::Result<Vec<config::Confg>> {
 }
 
 /// Makes a directory specified
-fn mk_dir(d: &str) -> std::io::Result<()> {
-    try!(fs::create_dir_all(d));
+pub fn mk_dir(d: &str) -> io::Result<()>{
+    fs::create_dir_all(d)?;
     Ok(())
 }
