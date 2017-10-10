@@ -40,15 +40,11 @@ fn break_remotefile(input: &mut String) -> Option<Vec<Downloadable>> {
 
     for file in files {
 
-        if file.contains("remoteDir:") && file.contains("localDir:") && file.contains("name:") {
+        if file.contains("remoteDir:") && file.contains("localDir:") {
             let a: &mut String = &mut file.to_string();
             dlable_f.push(Downloadable {
                 client_loc: break_line(a, "localLoc:").unwrap(),
                 server_loc: break_line(a, "remoteLoc:").unwrap(),
-                namescheme: break_line(a, "nameToSaveAs:").unwrap_or(
-                    break_line(a, "name:")
-                        .unwrap(),
-                ),
             });
         } else {
         }
@@ -71,9 +67,8 @@ fn break_remotefile(input: &mut String) -> Option<Vec<Downloadable>> {
 }
 
 pub struct Downloadable {
-    client_loc: String,
-    server_loc: String,
-    namescheme: String,
+    pub client_loc: String,
+    pub server_loc: String,
 }
 
 
